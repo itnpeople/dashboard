@@ -4,8 +4,10 @@ import (
 	"strings"
 )
 
-/**
+/*
+*
 auth-info USE-CASES
+
 	{"strategy":"cookie"}
 	{"strategy":"cookie",	"secret": {"type": "static-user",			"username": "admin", "password": "kore3lab"} }
 	{"strategy":"cookie",	"secret": {"type": "static-token",			"token": "kore3lab"} }
@@ -27,16 +29,16 @@ const (
 	SecretServiceAccountToken = "service-account-token"
 )
 
-type AuthConfig struct {
-	Strategy   string //nuxt-auth strategy
-	Secret     string //static-user, static-token , service-account-token
-	AccessKey  string //local access-token-key
-	RefreshKey string //local refresh-token-key
-	Data       map[string]string
+type AuthenticatorOptions struct {
+	Strategy   string            `json:"strategy"` // (file,configmap)
+	Secret     string            `json:"secret"`
+	AccessKey  string            `json:"accessKey"`
+	RefreshKey string            `json:"refreshKey"`
+	Data       map[string]string `json:"data"`
 }
 
 // auth scheme (user, token)
-func (me *AuthConfig) GetSchema() string {
+func (me *AuthenticatorOptions) GetSchema() string {
 
 	schema := "user"
 	if me.Secret == "" {

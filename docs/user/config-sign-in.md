@@ -10,12 +10,11 @@
   * static-user : compare static username/password
   * static-token : compare static token string
   * basic-auth : compare kubernetes's basic-auth secret ( username, password )
-  * service-account-token : compare kubernetes's service-account-token secret
+  * opaque : compare kubernetes's opaque secret (key, value)
 
 * login schema
   * user : username, password
   * token : string
-
 
 ## How to apply
   * apply the feature as a startup parameter.
@@ -78,13 +77,15 @@ spec:
 
 * create a 'basic-auth' secret
 ```
+# basic-auth
+
 $ kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
   name: secret-basic-auth
 type: kubernetes.io/basic-auth
-stringData:
+data:
   username: admin
   password: t0p-Secret
 EOF
@@ -98,7 +99,7 @@ spec:
     - name: backend
       image: ghcr.io/kore3lab/kore-board.backend:latest
       args:
-        - --auth=strategy=<cookie/local>,secret=basic-auth,dir=/var/user
+        - --auth=strategy=<cookie/local>,secret=basic-auth,location=/var/user
         ...
       volumeMounts:
       - name: user-vol
@@ -109,7 +110,13 @@ spec:
         secretName: secret-basic-auth
 ```
 
-### service-account-token 
+###  opaque
+
+```
+$ kubectl create secret generic secret-auth --from-literal=admin=t0p-secret
+```
+
+* using volumn mount
 
 ```
 spec:
@@ -117,21 +124,17 @@ spec:
     - name: backend
       image: ghcr.io/kore3lab/kore-board.backend:latest
       args:
-        - --auth=strategy=<cookie/local>,access-key=<access-token-secret>,refresh=<refresh-token-secret>,secret=service-account-token
+        - --auth=strategy=<cookie/local>,secret=opaque,location=/var/user
+        ...
+      volumeMounts:
+      - name: user-vol
+        mountPath: "/var/user"
+    volumes:
+    - name: user-vol
+      secret:
+        secretName: secret-auth
 ```
 
-* get a token-string (ex. query from serviceaccount `kore-board`)
+* input key and value string in your browser login page
 
-```
-$ SECRET="$(kubectl get sa -n kore -l app=kore-board -o jsonpath='{.items[0].secrets[0].name}')"
-$ echo "$(kubectl get secret ${SECRET} -n kore -o jsonpath='{.data.token}' | base64 --decode)"
-```
 
-* get a token-string (ex. query from current namespace's serviceaccount `default`)
-
-```
-$ SECRET="$(kubectl get sa default -o jsonpath='{..secrets[0].name}')"
-$ echo "$(kubectl get secret ${SECRET} -o jsonpath='{.data.token}' | base64 --decode)"
-```
-
-* input token-string in your browser login page
