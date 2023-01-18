@@ -35,7 +35,7 @@ func NewAuthenticator(opts string) (*Authenticator, error) {
 		return nil, err
 	}
 
-	authenticator := &Authenticator{Options: options}
+	authenticator := &Authenticator{AuthenticatorOptions: *options}
 
 	if options.Strategy == StrategyCookie {
 

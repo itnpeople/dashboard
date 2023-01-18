@@ -49,12 +49,12 @@ func CreateUrlMappings() {
 	contextsAPI := Router.Group("/api/contexts", authenticate())
 	{
 		contextsAPI.GET("", apis.ListContexts)                             // list contexts
-		contextsAPI.POST("", apis.CreateContexts)                          // create contexts (kubeconfig yaml)
 		contextsAPI.GET("/:CLUSTER", apis.GetContext)                      // get a context (context meta-data : resources & namespaces)
-		contextsAPI.GET("/:CLUSTER/config", apis.GetContextConfig)         // get a context (server, user, context)
 		contextsAPI.GET("/:CLUSTER/namespaces", apis.GetContextNamespaces) // get namespaces
 		contextsAPI.POST("/:CLUSTER", apis.AddContext)                     // add a context (server, user, context)
 		contextsAPI.DELETE("/:CLUSTER", apis.DeleteContext)                // delete a context
+		//contextsAPI.POST("", apis.CreateContexts)                          // create contexts (kubeconfig yaml)
+		//contextsAPI.GET("/:CLUSTER/config", apis.GetContextConfig)         // get a context (server, user, context)
 	}
 
 	// custom API

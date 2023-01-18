@@ -16,7 +16,7 @@ import (
 func GetClusterMetrics(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	metrics, err := model.GetClusterCumulativeMetrics(cluster)
 	if err != nil {
@@ -31,7 +31,7 @@ func GetClusterMetrics(c *gin.Context) {
 func GetNodeMetrics(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	metrics, err := model.GetNodeCumulativeMetrics(cluster, c.Param("NAME"))
 	if err != nil {
@@ -46,7 +46,7 @@ func GetNodeMetrics(c *gin.Context) {
 func GetWorkloadMetrics(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	metrics, err := model.GetWorkloadCumulativeMetrics(cluster, c.Param("NAMESPACE"), c.Param("RESOURCE"), c.Param("NAME"))
 	if err != nil {
@@ -60,7 +60,7 @@ func GetWorkloadMetrics(c *gin.Context) {
 // Get node list
 func GetNodeListWithUsage(c *gin.Context) {
 	g := app.Gin{C: c}
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	pods, err := model.GetNodeListWithUsage(cluster)
 	if err != nil {
@@ -74,7 +74,7 @@ func GetNodeListWithUsage(c *gin.Context) {
 // Get node pod-list
 func GetNodePodListWithMetrics(c *gin.Context) {
 	g := app.Gin{C: c}
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	pods, err := model.GetNodePodListWithMetrics(cluster, c.Param("NAME"))
 	if err != nil {
@@ -88,7 +88,7 @@ func GetNodePodListWithMetrics(c *gin.Context) {
 // Get workload pod-list (deployments, statefulsets, daemonsets, replicasets)
 func GetWorkloadPodListWithMetrics(c *gin.Context) {
 	g := app.Gin{C: c}
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	pods, err := model.GetWorkloadPodListWithMetrics(cluster, c.Param("NAMESPACE"), c.Param("RESOURCE"), c.Param("NAME"))
 	if err != nil {

@@ -73,9 +73,16 @@ $ go test github.com/kore3lab/dashboard/backend/pkg/kubeconfig -run TestFileKube
 
 # provider of configmap-strategy
 $ go test github.com/kore3lab/dashboard/backend/pkg/kubeconfig -run TestConfigMapKubeConfigProvider  -v
+
+# cluster add/remove
+$ go test github.com/kore3lab/dashboard/backend/pkg/kubeconfig -run TestKubeClusterAddRemove  -v
+
+
 ```
 
-* authenticator (TODO)
+
+
+* authenticator
 
 ```
 $ go test github.com/kore3lab/dashboard/backend/pkg/auth -v
@@ -87,3 +94,7 @@ $ go test github.com/kore3lab/dashboard/backend/pkg/auth -run TestTokenExpired -
 ```
 
 
+* config
+```
+$ go test github.com/kore3lab/dashboard/backend/pkg/config -v
+```

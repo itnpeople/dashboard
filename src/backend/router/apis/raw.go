@@ -28,13 +28,13 @@ func GetAPIGroupList(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	// instancing dynamic client
-	client, err := config.Cluster.Client(g.C.Param("CLUSTER"))
+	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	discoveryClient, err := client.NewDiscoveryClient()
+	discoveryClient, err := clientset.NewDiscoveryClient()
 	if err != nil {
 		g.SendError(err)
 		return
@@ -55,18 +55,13 @@ func ApplyRaw(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	// api client
-	client, err := config.Cluster.Client(g.C.Param("CLUSTER"))
+	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	api, err := client.NewDynamicClient()
-	if err != nil {
-		g.SendError(err)
-		return
-	}
-
+	api := clientset.NewDynamicClient()
 	// invoke POST
 	r, err := api.POST(g.C.Request.Body, g.C.Request.Method == "PUT")
 	if err != nil {
@@ -89,18 +84,13 @@ func DeleteRaw(c *gin.Context) {
 	}
 
 	// instancing dynamic client
-	client, err := config.Cluster.Client(g.C.Param("CLUSTER"))
+	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	api, err := client.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
-	if err != nil {
-		g.SendError(err)
-		return
-	}
-
+	api := clientset.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
 	api.SetNamespace(c.Param("NAMESPACE"))
 
 	// invoke delete
@@ -126,18 +116,13 @@ func GetRaw(c *gin.Context) {
 		return
 	}
 	// instancing dynamic client
-	client, err := config.Cluster.Client(g.C.Param("CLUSTER"))
+	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	api, err := client.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
-	if err != nil {
-		g.SendError(err)
-		return
-	}
-
+	api := clientset.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
 	api.SetNamespace(c.Param("NAMESPACE"))
 
 	var r interface{}
@@ -178,13 +163,13 @@ func PatchRaw(c *gin.Context) {
 	}
 
 	// instancing dynamic client
-	client, err := config.Cluster.Client(g.C.Param("CLUSTER"))
+	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	api, err := client.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
+	api := clientset.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
 	if err != nil {
 		g.SendError(err)
 		return
@@ -221,13 +206,13 @@ func GetPodLogs(c *gin.Context) {
 	}
 
 	// instancing dynamic client
-	client, err := config.Cluster.Client(g.C.Param("CLUSTER"))
+	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	apiClient, err := client.NewKubernetesClient()
+	apiClient, err := clientset.NewKubernetesClient()
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return

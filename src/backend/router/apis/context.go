@@ -8,11 +8,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"github.com/kore3lab/dashboard/backend/pkg/app"
+	"github.com/kore3lab/dashboard/backend/pkg/clusters"
 	"github.com/kore3lab/dashboard/backend/pkg/config"
 	"github.com/kore3lab/dashboard/backend/pkg/lang"
 )
@@ -21,8 +21,8 @@ func ListContexts(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	g.Send(http.StatusOK, map[string]interface{}{
-		"contexts":       config.Cluster.ClusterNames,
-		"currentContext": lang.NVL(c.Query("ctx"), config.Cluster.DefaultContext),
+		"contexts":       config.Clusters.GetClusterNames(),
+		"currentContext": lang.NVL(c.Query("ctx"), config.Clusters.CurrentCluster),
 	})
 
 }
@@ -31,23 +31,23 @@ func GetContext(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	// query "ctx" 가 공백이면 default context  사용
-	ctx := lang.NVL(c.Param("CLUSTER"), config.Cluster.DefaultContext)
+	ctx := lang.NVL(c.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	resources := make(map[string]interface{})
 	namespaces := []string{}
 	kubernetesVersion := ""
 	platform := ""
-	if len(config.Cluster.ClusterNames) > 0 {
+	if len(config.Clusters.GetClusterNames()) > 0 {
 
 		// client
-		client, err := config.Cluster.Client(ctx)
+		clientset, err := config.Clusters.NewClientSet(ctx)
 		if err != nil {
 			g.SendMessage(http.StatusBadRequest, err.Error(), err)
 			return
 		}
 
 		// namespaces
-		k8sClient, err := client.NewKubernetesClient()
+		k8sClient, err := clientset.NewKubernetesClient()
 		if err != nil {
 			g.SendMessage(http.StatusInternalServerError, err.Error(), err)
 			return
@@ -59,7 +59,7 @@ func GetContext(c *gin.Context) {
 		if err != nil {
 			// namespace 를 가져오지 못하면 클라이언트에 contexts 리스트만 리턴해준다
 			g.Send(http.StatusPartialContent, map[string]interface{}{
-				"contexts": config.Cluster.ClusterNames,
+				"contexts": config.Clusters.GetClusterNames(),
 				"currentContext": map[string]interface{}{
 					"name":       ctx,
 					"resources":  []string{},
@@ -74,7 +74,7 @@ func GetContext(c *gin.Context) {
 		}
 
 		// resources
-		discoveryClient, err := client.NewDiscoveryClient()
+		discoveryClient, err := clientset.NewDiscoveryClient()
 		if err != nil {
 			g.SendMessage(http.StatusInternalServerError, err.Error(), err)
 			return
@@ -126,7 +126,7 @@ func GetContext(c *gin.Context) {
 	}
 
 	g.Send(http.StatusOK, map[string]interface{}{
-		"contexts": config.Cluster.ClusterNames,
+		"contexts": config.Clusters.GetClusterNames(),
 		"currentContext": map[string]interface{}{
 			"name":              ctx,
 			"resources":         resources,
@@ -142,19 +142,19 @@ func GetContextNamespaces(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	// query "ctx" 가 공백이면 default context  사용
-	ctx := lang.NVL(c.Param("CLUSTER"), config.Cluster.DefaultContext)
+	ctx := lang.NVL(c.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
 	namespaces := []string{}
 
 	// client
-	client, err := config.Cluster.Client(ctx)
+	clientset, err := config.Clusters.NewClientSet(ctx)
 	if err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
 	// namespaces
-	k8sClient, err := client.NewKubernetesClient()
+	k8sClient, err := clientset.NewKubernetesClient()
 	if err != nil {
 		g.SendMessage(http.StatusInternalServerError, err.Error(), err)
 		return
@@ -184,8 +184,8 @@ func GetContextNamespaces(c *gin.Context) {
 func DeleteContext(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	if lang.ArrayContains(config.Cluster.ClusterNames, c.Param("CLUSTER")) {
-		err := config.Cluster.Remove(c.Param("CLUSTER"))
+	if lang.ArrayContains(config.Clusters.GetClusterNames(), c.Param("CLUSTER")) {
+		err := config.Clusters.RemoveCluster(c.Param("CLUSTER"))
 		if err != nil {
 			g.SendMessage(http.StatusBadRequest, "Unable to modify kubeconfig", err)
 		} else {
@@ -200,63 +200,64 @@ func DeleteContext(c *gin.Context) {
 
 }
 
-func GetContextConfig(c *gin.Context) {
-	g := app.Gin{C: c}
+//func GetContextConfig(c *gin.Context) {
+//	g := app.Gin{C: c}
 
-	conf := config.Cluster.KubeConfig.DeepCopy()
+//	conf := config.Cluster.KubeConfig.DeepCopy()
 
-	if g.C.Query("redacted") != "false" && g.C.Query("redacted") != "N" && g.C.Query("redacted") != "0" {
-		api.ShortenConfig(conf)
-	}
+//	if g.C.Query("redacted") != "false" && g.C.Query("redacted") != "N" && g.C.Query("redacted") != "0" {
+//		api.ShortenConfig(conf)
+//	}
 
-	context := conf.Contexts[c.Param("CLUSTER")]
-	if context == nil {
-		g.SendMessage(http.StatusNotFound, fmt.Sprintf("not found a context '%s'", c.Param("CLUSTER")), nil)
-	} else {
-		g.Send(http.StatusOK, map[string]interface{}{
-			"cluster": conf.Clusters[context.Cluster],
-			"context": context,
-			"user":    conf.AuthInfos[context.AuthInfo],
-		})
-	}
-}
+//	context := conf.Contexts[c.Param("CLUSTER")]
+//	if context == nil {
+//		g.SendMessage(http.StatusNotFound, fmt.Sprintf("not found a context '%s'", c.Param("CLUSTER")), nil)
+//	} else {
+//		g.Send(http.StatusOK, map[string]interface{}{
+//			"cluster": conf.Clusters[context.Cluster],
+//			"context": context,
+//			"user":    conf.AuthInfos[context.AuthInfo],
+//		})
+//	}
+//}
 
-func CreateContexts(c *gin.Context) {
-	g := app.Gin{C: c}
+//func CreateContexts(c *gin.Context) {
+//	g := app.Gin{C: c}
 
-	conf := api.Config{}
+//	conf := api.Config{}
 
-	if g.C.BindJSON(&conf) != nil {
-		g.SendMessage(http.StatusBadRequest, "Unable to bind request body", nil)
-	} else {
-		err := config.Cluster.Create(conf)
-		if err != nil {
-			g.SendMessage(http.StatusBadRequest, "Unable to modify kubeconfig", err)
-		} else {
-			//config.Setup()
-			go reloadConfigMetricsScraper()
-			go reloadConfigTerminal()
-			ListContexts(c)
-		}
-	}
-}
+//	if g.C.BindJSON(&conf) != nil {
+//		g.SendMessage(http.StatusBadRequest, "Unable to bind request body", nil)
+//	} else {
+//		err := config.Cluster.Create(conf)
+//		if err != nil {
+//			g.SendMessage(http.StatusBadRequest, "Unable to modify kubeconfig", err)
+//		} else {
+//			//config.Setup()
+//			go reloadConfigMetricsScraper()
+//			go reloadConfigTerminal()
+//			ListContexts(c)
+//		}
+//	}
+//}
 
 func AddContext(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	name := c.Param("CLUSTER")
+	clusterName := c.Param("CLUSTER")
 
-	conf := config.Cluster.KubeConfig.DeepCopy()
-	if conf != nil && conf.Contexts[name] != nil {
-		g.SendMessage(http.StatusBadRequest, fmt.Sprintf("Already exist a context '%s'", name), nil)
+	if lang.ArrayContains(config.Clusters.GetClusterNames(), clusterName) {
+		g.SendMessage(http.StatusBadRequest, fmt.Sprintf("Already exist a context '%s'", clusterName), nil)
 	} else {
-		json := make(map[string]interface{})
-		if g.C.BindJSON(&json) != nil {
+
+		var conf clusters.KubeConfig
+		if g.C.BindJSON(&conf) != nil {
 			g.SendMessage(http.StatusInternalServerError, "Unable to bind request body", nil)
 			return
 		}
 
-		err := config.Cluster.Add(name, json)
+		conf.Name = clusterName
+		err := config.Clusters.AddCluster(&conf)
 		if err != nil {
 			g.SendMessage(http.StatusBadRequest, "Unable to modify kubeconfig", err)
 		} else {

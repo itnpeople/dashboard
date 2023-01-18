@@ -63,7 +63,7 @@ func GetNodePods(apiClient *kubernetes.Clientset, name string) ([]coreV1.Pod, er
 // get node-list with metrics-usage
 func GetNodeListWithUsage(cluster string) (interface{}, error) {
 
-	clientSet, err := config.Cluster.Client(cluster)
+	clientSet, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}

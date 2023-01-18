@@ -1,18 +1,22 @@
-/**
+/*
+*
 "k8s.io/client-go/dynamic"
-    관련소스 : https://github.com/kubernetes/client-go/tree/master/dynamic
 
+	관련소스 : https://github.com/kubernetes/client-go/tree/master/dynamic
 
 Kubernetes API Concepts
-    https://kubernetes.io/docs/reference/using-api/api-concepts/
+
+	https://kubernetes.io/docs/reference/using-api/api-concepts/
 
 Patch
-    https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+
+	https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
 
 활용예제 참조
-    kubernetes-dashboard
-        https://github.com/kubernetes/dashboard/blob/master/src/app/backend/resource/deployment/deploy.go
-        DeployAppFromFile() 함수
+
+	kubernetes-dashboard
+	    https://github.com/kubernetes/dashboard/blob/master/src/app/backend/resource/deployment/deploy.go
+	    DeployAppFromFile() 함수
 */
 package client
 
@@ -32,29 +36,20 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
-	// "encoding/json"
 )
 
-// type resourceVerber struct {
-type DynamicClient struct {
-	config       *rest.Config
-	resource     schema.GroupVersionResource
-	namespace    string
-	namespaceSet bool
-}
-
 // RestfulClient 리턴
-func NewDynamicClient(config *rest.Config) *DynamicClient {
-	return &DynamicClient{
+func NewDynamicClient(config *rest.Config) *DynamicClientWrap {
+	return &DynamicClientWrap{
 		config:       config,
 		namespaceSet: false,
 	}
 }
 
 // RestfulClient 리턴
-func NewDynamicClientSchema(config *rest.Config, group string, version string, resource string) *DynamicClient {
+func NewDynamicClientSchema(config *rest.Config, group string, version string, resource string) *DynamicClientWrap {
 	// 예:  schema.GroupVersionResource{Group: "networking.istio.io", Version: "v1alpha3", Resource: "virtualservices"}
-	return &DynamicClient{
+	return &DynamicClientWrap{
 		config:       config,
 		resource:     schema.GroupVersionResource{Group: group, Version: version, Resource: resource},
 		namespaceSet: false,
@@ -62,13 +57,13 @@ func NewDynamicClientSchema(config *rest.Config, group string, version string, r
 }
 
 // List
-func (self *DynamicClient) SetNamespace(namespace string) {
+func (self *DynamicClientWrap) SetNamespace(namespace string) {
 	self.namespace = namespace
 	self.namespaceSet = (namespace != "")
 }
 
 // List
-func (self *DynamicClient) List(opts v1.ListOptions) (r *unstructured.UnstructuredList, err error) {
+func (self *DynamicClientWrap) List(opts v1.ListOptions) (r *unstructured.UnstructuredList, err error) {
 
 	// 실행
 	dynamicClient, err := dynamic.NewForConfig(self.config)
@@ -88,7 +83,7 @@ func (self *DynamicClient) List(opts v1.ListOptions) (r *unstructured.Unstructur
 }
 
 // GET
-func (self *DynamicClient) GET(name string, opts v1.GetOptions) (r *unstructured.Unstructured, err error) {
+func (self *DynamicClientWrap) GET(name string, opts v1.GetOptions) (r *unstructured.Unstructured, err error) {
 
 	// 실행
 	dynamicClient, err := dynamic.NewForConfig(self.config)
@@ -108,7 +103,7 @@ func (self *DynamicClient) GET(name string, opts v1.GetOptions) (r *unstructured
 }
 
 // Watch
-func (self *DynamicClient) Watch(opts v1.ListOptions) (output watch.Interface, err error) {
+func (self *DynamicClientWrap) Watch(opts v1.ListOptions) (output watch.Interface, err error) {
 
 	// 실행
 	dynamicClient, err := dynamic.NewForConfig(self.config)
@@ -129,7 +124,7 @@ func (self *DynamicClient) Watch(opts v1.ListOptions) (output watch.Interface, e
 }
 
 // DELETE
-func (self *DynamicClient) DELETE(name string, opts v1.DeleteOptions) (err error) {
+func (self *DynamicClientWrap) DELETE(name string, opts v1.DeleteOptions) (err error) {
 
 	// 실행
 	dynamicClient, err := dynamic.NewForConfig(self.config)
@@ -148,7 +143,7 @@ func (self *DynamicClient) DELETE(name string, opts v1.DeleteOptions) (err error
 }
 
 // POST
-func (self *DynamicClient) POST(payload io.Reader, isUpdate bool) (output *unstructured.Unstructured, err error) {
+func (self *DynamicClientWrap) POST(payload io.Reader, isUpdate bool) (output *unstructured.Unstructured, err error) {
 
 	d := yaml.NewYAMLOrJSONDecoder(payload, 4096)
 	for {
@@ -230,7 +225,7 @@ func (self *DynamicClient) POST(payload io.Reader, isUpdate bool) (output *unstr
 }
 
 // Patch
-func (self *DynamicClient) PATCH(name string, patchType types.PatchType, payload io.Reader, opts v1.PatchOptions) (output *unstructured.Unstructured, err error) {
+func (self *DynamicClientWrap) PATCH(name string, patchType types.PatchType, payload io.Reader, opts v1.PatchOptions) (output *unstructured.Unstructured, err error) {
 
 	data, err := ioutil.ReadAll(payload)
 	if err != nil {

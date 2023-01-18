@@ -56,13 +56,13 @@ func (me *AuthenticatorOptions) GetSchema() string {
 }
 
 type Authenticator struct {
+	AuthenticatorOptions
 	Realm          string
 	HandlerFunc    func() gin.HandlerFunc
 	Validate       func(map[string]string) error
 	LoginHandler   func(body map[string]string) (interface{}, error)
 	RefreshHandler func(body map[string]string) (interface{}, error)
 	LogoutHandler  func(body map[string]string)
-	Options        *AuthenticatorOptions
 }
 
 type SecretProvider func(user, realm string) string

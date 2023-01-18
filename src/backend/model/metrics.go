@@ -8,7 +8,6 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-
 	"github.com/kore3lab/dashboard/backend/pkg/client"
 	"github.com/kore3lab/dashboard/backend/pkg/config"
 )
@@ -16,7 +15,7 @@ import (
 // get cluster metrics
 func GetClusterCumulativeMetrics(cluster string) (*NodeCumulativeMetrics, error) {
 
-	clientSet, err := config.Cluster.Client(cluster)
+	clientSet, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +23,7 @@ func GetClusterCumulativeMetrics(cluster string) (*NodeCumulativeMetrics, error)
 	if err != nil {
 		return nil, err
 	}
-	metricsClient := clientSet.NewCumulativeMetricsClient()
+	metricsClient := client.NewCumulativeMetricsClient(*config.StartupOptions.MetricsScraperUrl, cluster)
 
 	result := NodeCumulativeMetrics{}
 
@@ -55,7 +54,7 @@ func GetClusterCumulativeMetrics(cluster string) (*NodeCumulativeMetrics, error)
 // get node metrics
 func GetNodeCumulativeMetrics(cluster string, name string) (*NodeCumulativeMetrics, error) {
 
-	clientSet, err := config.Cluster.Client(cluster)
+	clientSet, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +63,7 @@ func GetNodeCumulativeMetrics(cluster string, name string) (*NodeCumulativeMetri
 	if err != nil {
 		return nil, err
 	}
-	metricsClient := clientSet.NewCumulativeMetricsClient()
+	metricsClient := client.NewCumulativeMetricsClient(*config.StartupOptions.MetricsScraperUrl, cluster)
 
 	node, err := apiClient.CoreV1().Nodes().Get(context.TODO(), name, metaV1.GetOptions{})
 	if err != nil {
@@ -89,7 +88,7 @@ func GetNodeCumulativeMetrics(cluster string, name string) (*NodeCumulativeMetri
 // get workloads metrics
 func GetWorkloadCumulativeMetrics(cluster string, namespace string, resource string, name string) (*CumulativeMetrics, error) {
 
-	clientSet, err := config.Cluster.Client(cluster)
+	clientSet, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +136,7 @@ func GetWorkloadCumulativeMetrics(cluster string, namespace string, resource str
 			names = append(names, pd.ObjectMeta.Name)
 		}
 
-		metricsClient := clientSet.NewCumulativeMetricsClient()
+		metricsClient := client.NewCumulativeMetricsClient(*config.StartupOptions.MetricsScraperUrl, cluster)
 
 		selector := client.CumulativeMetricsResourceSelector{
 			Pods:      names,
@@ -171,7 +170,7 @@ func GetWorkloadCumulativeMetrics(cluster string, namespace string, resource str
 // get pod list with metrics
 func GetNodePodListWithMetrics(cluster string, name string) (interface{}, error) {
 
-	clientSet, err := config.Cluster.Client(cluster)
+	clientSet, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -202,17 +201,17 @@ func GetNodePodListWithMetrics(cluster string, name string) (interface{}, error)
 // get pod list with metrics
 func GetWorkloadPodListWithMetrics(cluster string, namespace string, resource string, name string) (interface{}, error) {
 
-	client, err := config.Cluster.Client(cluster)
+	clientset, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	apiClient, err := client.NewKubernetesClient()
+	apiClient, err := clientset.NewKubernetesClient()
 	if err != nil {
 		return nil, err
 	}
 
-	metricsClient, err := client.NewMetricsClient()
+	metricsClient, err := clientset.NewMetricsClient()
 	if err != nil {
 		return nil, err
 	}

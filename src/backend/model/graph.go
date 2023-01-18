@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/kore3lab/dashboard/backend/pkg/client"
 	"github.com/kore3lab/dashboard/backend/pkg/config"
 	"github.com/kore3lab/dashboard/backend/pkg/lang"
 )
@@ -19,12 +20,12 @@ func GetTopologyGraph(cluster string, namespace string) (topology Topology, err 
 	topology = Topology{Nodes: []topologyNode{}, Links: []topologyLink{}}
 
 	// api-client
-	client, err := config.Cluster.Client(cluster)
+	clientset, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return
 	}
 
-	api, err := client.NewKubernetesClient()
+	api, err := clientset.NewKubernetesClient()
 	if err != nil {
 		return
 	}
@@ -124,8 +125,8 @@ func GetTopologyGraph(cluster string, namespace string) (topology Topology, err 
 }
 
 // get group versions
-func getGroupVersion(client *config.ClientSet) (coreVersion string, appsVersion string, networkVersion string, err error) {
-	if discoveryClient, err := client.NewDiscoveryClient(); err == nil {
+func getGroupVersion(clientset *client.ClientSet) (coreVersion string, appsVersion string, networkVersion string, err error) {
+	if discoveryClient, err := clientset.NewDiscoveryClient(); err == nil {
 		if groups, err := discoveryClient.ServerGroups(); err == nil {
 			for _, g := range groups.Groups {
 				if g.Name == "" {
@@ -159,7 +160,7 @@ func newHierarchyNode(ty v1.TypeMeta, obj v1.ObjectMeta, owner string) Hierarchy
 func GetWorkloadGraph(cluster string, namespace string) (Hierarchy, error) {
 
 	// api-client
-	client, err := config.Cluster.Client(cluster)
+	clientset, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -167,11 +168,11 @@ func GetWorkloadGraph(cluster string, namespace string) (Hierarchy, error) {
 	// get group versions
 	var coreVersion string
 	var appsVersion string
-	if coreVersion, appsVersion, _, err = getGroupVersion(client); err != nil {
+	if coreVersion, appsVersion, _, err = getGroupVersion(clientset); err != nil {
 		return nil, err
 	}
 
-	api, err := client.NewKubernetesClient()
+	api, err := clientset.NewKubernetesClient()
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +232,7 @@ func GetWorkloadGraph(cluster string, namespace string) (Hierarchy, error) {
 func GetNetworkGraph(cluster string, namespace string) (Hierarchy, error) {
 
 	// api-client
-	client, err := config.Cluster.Client(cluster)
+	clientset, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -239,11 +240,11 @@ func GetNetworkGraph(cluster string, namespace string) (Hierarchy, error) {
 	// get group versions
 	var coreVersion string
 	var networkVersion string
-	if coreVersion, _, networkVersion, err = getGroupVersion(client); err != nil {
+	if coreVersion, _, networkVersion, err = getGroupVersion(clientset); err != nil {
 		return nil, err
 	}
 
-	api, err := client.NewKubernetesClient()
+	api, err := clientset.NewKubernetesClient()
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +328,7 @@ func GetNetworkGraph(cluster string, namespace string) (Hierarchy, error) {
 func GetPodGraph(cluster string, namespace string, name string) (Hierarchy, error) {
 
 	// api-client
-	client, err := config.Cluster.Client(cluster)
+	clientset, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -335,13 +336,13 @@ func GetPodGraph(cluster string, namespace string, name string) (Hierarchy, erro
 	// get group versions
 	var coreVersion string
 	var appsVersion string
-	if coreVersion, appsVersion, _, err = getGroupVersion(client); err != nil {
+	if coreVersion, appsVersion, _, err = getGroupVersion(clientset); err != nil {
 		return nil, err
 	}
 
 	// get objects
 	nodes := []HierarchyNode{}
-	api, err := client.NewKubernetesClient()
+	api, err := clientset.NewKubernetesClient()
 	if err != nil {
 		return nil, err
 	}

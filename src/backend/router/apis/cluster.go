@@ -15,7 +15,7 @@ import (
 func Network(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 	namespace := c.Param("NAMESPACE")
 
 	if topology, err := model.GetNetworkGraph(cluster, namespace); err != nil {
@@ -29,7 +29,7 @@ func Network(c *gin.Context) {
 func Topology(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 	namespace := c.Param("NAMESPACE")
 
 	if topology, err := model.GetTopologyGraph(cluster, namespace); err != nil {
@@ -43,7 +43,7 @@ func Topology(c *gin.Context) {
 func Workloads(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 	namespace := c.Param("NAMESPACE")
 
 	if workloads, err := model.GetWorkloadGraph(cluster, namespace); err != nil {
@@ -57,7 +57,7 @@ func Workloads(c *gin.Context) {
 func Pod(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 	namespace := c.Param("NAMESPACE")
 	name := c.Param("POD")
 
@@ -72,9 +72,9 @@ func Pod(c *gin.Context) {
 func Dashboard(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Cluster.DefaultContext)
+	cluster := lang.NVL(g.C.Param("CLUSTER"), config.Clusters.CurrentCluster)
 
-	clientSet, err := config.Cluster.Client(cluster)
+	clientSet, err := config.Clusters.NewClientSet(cluster)
 	if err != nil {
 		g.SendError(err)
 		return

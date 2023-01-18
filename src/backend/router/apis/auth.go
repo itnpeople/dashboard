@@ -21,9 +21,9 @@ func GetAuth(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	g.Send(http.StatusOK, map[string]string{
-		"strategy": string(config.Value.AuthConfig.Strategy),
-		"schema":   config.Value.AuthConfig.GetSchema(),
-		"provider": string(config.Value.AuthConfig.Secret),
+		"strategy": string(config.Authenticator.Strategy),
+		"schema":   config.Authenticator.GetSchema(),
+		"provider": string(config.Authenticator.Secret),
 	})
 
 }
@@ -62,7 +62,7 @@ func Login(c *gin.Context) {
 func RefreshToken(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	if config.Value.AuthConfig.Strategy != auth.StrategyLocal {
+	if config.Authenticator.Strategy != auth.StrategyLocal {
 		g.Send(http.StatusNotFound, nil)
 		return
 	}
@@ -92,12 +92,12 @@ func RefreshToken(c *gin.Context) {
 func GetUser(c *gin.Context) {
 	g := app.Gin{C: c}
 
-	scheme := config.Value.AuthConfig.GetSchema()
+	scheme := config.Authenticator.GetSchema()
 
 	user := &user{}
 
 	if scheme == "user" {
-		user.Username = config.Value.AuthConfig.Username
+		user.Username = config.Authenticator.Username
 	} else {
 		user.Username = "admin"
 	}
