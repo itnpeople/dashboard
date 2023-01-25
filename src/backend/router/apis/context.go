@@ -274,7 +274,7 @@ func reloadConfigMetricsScraper() {
 	client := resty.New()
 	_, err := client.R().
 		SetHeader("Content-Type", "application/json").
-		Patch(fmt.Sprintf("%s/api/v1/config", config.Value.MetricsScraperUrl))
+		Patch(fmt.Sprintf("%s/api/v1/config", *config.StartupOptions.MetricsScraperUrl))
 
 	if err != nil {
 		log.Errorf("Unable to metrics scraper config reload (cause=%v)", err)
@@ -286,7 +286,7 @@ func reloadConfigTerminal() {
 	client := resty.New()
 	_, err := client.R().
 		SetHeader("Content-Type", "application/json").
-		Patch(fmt.Sprintf("%s/api/v1/config", config.Value.TerminalUrl))
+		Patch(fmt.Sprintf("%s/api/v1/config", *config.StartupOptions.TerminalUrl))
 
 	if err != nil {
 		log.Errorf("Unable to Terminal config reload (cause=%v)", err)

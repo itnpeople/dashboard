@@ -9,6 +9,7 @@ package apis
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -28,25 +30,19 @@ func GetAPIGroupList(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	// instancing dynamic client
-	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
-	if err != nil {
+	if clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER")); err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
-		return
+	} else {
+		if discoveryClient, err := clientset.NewDiscoveryClient(); err != nil {
+			g.SendError(err)
+		} else {
+			if groups, err := discoveryClient.ServerGroups(); err != nil {
+				g.SendError(err)
+			} else {
+				g.Send(http.StatusOK, groups)
+			}
+		}
 	}
-
-	discoveryClient, err := clientset.NewDiscoveryClient()
-	if err != nil {
-		g.SendError(err)
-		return
-	}
-
-	groups, err := discoveryClient.ServerGroups()
-	if err != nil {
-		g.SendError(err)
-		return
-	}
-
-	g.Send(http.StatusOK, groups)
 
 }
 
@@ -55,21 +51,16 @@ func ApplyRaw(c *gin.Context) {
 	g := app.Gin{C: c}
 
 	// api client
-	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
-	if err != nil {
+	if clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER")); err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
-		return
+	} else {
+		// invoke POST
+		if r, err := clientset.NewKubeExecutor().POST(g.C.Request.Body, g.C.Request.Method == "PUT"); err != nil {
+			g.SendMessage(http.StatusBadRequest, err.Error(), err)
+		} else {
+			g.Send(http.StatusCreated, r)
+		}
 	}
-
-	api := clientset.NewDynamicClient()
-	// invoke POST
-	r, err := api.POST(g.C.Request.Body, g.C.Request.Method == "PUT")
-	if err != nil {
-		g.SendMessage(http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	g.Send(http.StatusCreated, r)
 }
 
 // Delete
@@ -84,19 +75,17 @@ func DeleteRaw(c *gin.Context) {
 	}
 
 	// instancing dynamic client
-	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
-	if err != nil {
+	if clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER")); err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	api := clientset.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
-	api.SetNamespace(c.Param("NAMESPACE"))
-
-	// invoke delete
-	if err := api.DELETE(c.Param("NAME"), v1.DeleteOptions{}); err != nil {
-		g.SendError(err)
-		return
+	} else {
+		// invoke delete
+		if client, err := clientset.NewDynamicClint(); err != nil {
+			g.SendMessage(http.StatusBadRequest, err.Error(), err)
+		} else {
+			if err := client.Resource(schema.GroupVersionResource{Group: c.Param("GROUP"), Version: c.Param("VERSION"), Resource: c.Param("RESOURCE")}).Namespace(c.Param("NAMESPACE")).Delete(context.TODO(), c.Param("NAME"), v1.DeleteOptions{}); err != nil {
+				g.SendError(err)
+			}
+		}
 	}
 
 }
@@ -122,38 +111,38 @@ func GetRaw(c *gin.Context) {
 		return
 	}
 
-	api := clientset.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
-	api.SetNamespace(c.Param("NAMESPACE"))
-
 	var r interface{}
 
-	if c.Param("NAME") == "" {
-		r, err = api.List(ListOptions)
-		if err != nil {
-			g.SendError(err)
-			return
-		}
+	client, err := clientset.NewDynamicClint()
+	if err != nil {
+		g.SendMessage(http.StatusBadRequest, err.Error(), err)
 	} else {
-		r, err = api.GET(c.Param("NAME"), v1.GetOptions{})
-		if err != nil {
-			if strings.HasSuffix(err.Error(), "not found") {
-				g.SendMessage(http.StatusNotFound, err.Error(), err)
-			} else {
+		executor := client.Resource(schema.GroupVersionResource{Group: c.Param("GROUP"), Version: c.Param("VERSION"), Resource: c.Param("RESOURCE")}).Namespace(c.Param("NAMESPACE"))
+		if c.Param("NAME") == "" {
+			r, err = executor.List(context.TODO(), ListOptions)
+			if err != nil {
 				g.SendError(err)
+				return
 			}
-			return
+		} else {
+			r, err = executor.Get(context.TODO(), c.Param("NAME"), v1.GetOptions{})
+			if err != nil {
+				if strings.HasSuffix(err.Error(), "not found") {
+					g.SendMessage(http.StatusNotFound, err.Error(), err)
+				} else {
+					g.SendError(err)
+				}
+				return
+			}
 		}
+		g.Send(http.StatusOK, r)
 	}
-
-	g.Send(http.StatusOK, r)
 
 }
 
 // Patch
 func PatchRaw(c *gin.Context) {
 	g := app.Gin{C: c}
-
-	var err error
 
 	// url parameter validation
 	v := []string{"VERSION", "RESOURCE", "NAME"}
@@ -163,32 +152,29 @@ func PatchRaw(c *gin.Context) {
 	}
 
 	// instancing dynamic client
-	clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER"))
-	if err != nil {
+	if clientset, err := config.Clusters.NewClientSet(g.C.Param("CLUSTER")); err != nil {
 		g.SendMessage(http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	api := clientset.NewDynamicClientSchema(c.Param("GROUP"), c.Param("VERSION"), c.Param("RESOURCE"))
-	if err != nil {
-		g.SendError(err)
-		return
-	}
-	api.SetNamespace(c.Param("NAMESPACE"))
-
-	var r interface{}
-
-	r, err = api.PATCH(c.Param("NAME"), types.PatchType(c.ContentType()), c.Request.Body, v1.PatchOptions{})
-	if err != nil {
-		if strings.HasSuffix(err.Error(), "not found") {
-			g.SendMessage(http.StatusNotFound, err.Error(), err)
+	} else {
+		if client, err := clientset.NewDynamicClint(); err != nil {
+			g.SendMessage(http.StatusBadRequest, err.Error(), err)
 		} else {
-			g.SendError(err)
+			var r interface{}
+			executor := client.Resource(schema.GroupVersionResource{Group: c.Param("GROUP"), Version: c.Param("VERSION"), Resource: c.Param("RESOURCE")}).Namespace(c.Param("NAMESPACE"))
+			if payload, err := ioutil.ReadAll(c.Request.Body); err != nil {
+				g.SendMessage(http.StatusBadRequest, err.Error(), err)
+			} else {
+				if r, err = executor.Patch(context.TODO(), c.Param("NAME"), types.PatchType(c.ContentType()), payload, v1.PatchOptions{}); err != nil {
+					if strings.HasSuffix(err.Error(), "not found") {
+						g.SendMessage(http.StatusNotFound, err.Error(), err)
+					} else {
+						g.SendError(err)
+					}
+				} else {
+					g.Send(http.StatusOK, r)
+				}
+			}
 		}
-		return
 	}
-
-	g.Send(http.StatusOK, r)
 
 }
 

@@ -76,8 +76,6 @@ $ go test github.com/kore3lab/dashboard/backend/pkg/kubeconfig -run TestConfigMa
 
 # cluster add/remove
 $ go test github.com/kore3lab/dashboard/backend/pkg/kubeconfig -run TestKubeClusterAddRemove  -v
-
-
 ```
 
 
@@ -98,3 +96,9 @@ $ go test github.com/kore3lab/dashboard/backend/pkg/auth -run TestTokenExpired -
 ```
 $ go test github.com/kore3lab/dashboard/backend/pkg/config -v
 ```
+
+* client
+```
+$ go test github.com/kore3lab/dashboard/backend/pkg/client -v
+```
+
